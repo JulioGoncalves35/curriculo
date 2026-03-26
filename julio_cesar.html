@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Júlio César — Editor de Conform | VFX | DI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #090D11;
+    --surface:  #0F1923;
+    --surface2: #162231;
+    --gold:     #C9A82A;
+    --accent:   #4A90D9;
+    --white:    #F0EDE8;
+    --muted:    #7A8899;
+    --border:   #1E2D3D;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: 'Crimson Pro', Georgia, serif;
+    font-size: 17px;
+    line-height: 1.65;
+    overflow-x: hidden;
+  }
+
+  /* grain */
+  body::after {
+    content: '';
+    position: fixed; inset: 0; z-index: 9999;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    opacity: 0.3;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    position: relative;
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding-bottom: 60px;
+    overflow: hidden;
+  }
+  .hero-bg {
+    position: absolute; inset: 0;
+    background: linear-gradient(to bottom, transparent 30%, var(--bg) 90%),
+      repeating-linear-gradient(90deg, transparent 0, transparent 58px, rgba(255,255,255,0.012) 58px, rgba(255,255,255,0.012) 60px);
+  }
+  .filmstrip {
+    position: absolute; left: 0; right: 0; height: 26px;
+    background: var(--surface);
+    display: flex; align-items: center; gap: 20px; padding: 0 24px;
+    z-index: 2; overflow: hidden;
+  }
+  .filmstrip.top { top: 0; }
+  .filmstrip.bot { bottom: 0; }
+  .hole { width: 13px; height: 9px; background: var(--bg); border-radius: 2px; flex-shrink: 0; }
+
+  .hero-inner {
+    position: relative; z-index: 3;
+    padding: clamp(60px, 10vh, 120px) clamp(24px, 6vw, 80px) 0;
+  }
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(9px, 1.2vw, 11px);
+    letter-spacing: 0.32em;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: clamp(30px, 4vh, 50px);
+    margin-top: clamp(-20px, -6vh, -30px);
+    opacity: 0; animation: fadeUp 0.7s 0.2s ease forwards;
+  }
+  .hero-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(52px, 10vw, 148px);
+    line-height: 0.88;
+    color: var(--white);
+    opacity: 0; animation: fadeUp 0.8s 0.35s ease forwards;
+  }
+  .hero-name span { color: var(--gold); display: block; }
+  .hero-title {
+    font-family: 'Crimson Pro', serif;
+    font-size: clamp(15px, 1.8vw, 20px);
+    font-weight: 300; font-style: italic;
+    color: var(--muted);
+    margin-top: clamp(12px, 2vw, 20px);
+    opacity: 0; animation: fadeUp 0.7s 0.55s ease forwards;
+  }
+  .hero-meta {
+    display: flex; flex-wrap: wrap;
+    gap: clamp(10px, 2vw, 28px);
+    margin-top: clamp(20px, 3vw, 36px);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(10px, 1.2vw, 12px);
+    color: var(--muted);
+    opacity: 0; animation: fadeUp 0.7s 0.7s ease forwards;
+  }
+  .hero-meta a { color: var(--accent); text-decoration: none; }
+  .hero-meta a:hover { color: var(--gold); }
+  .sep { color: var(--border); }
+
+  /* ── TICKER ── */
+  .reel-wrap {
+    overflow: hidden;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    padding: 13px 0;
+    background: var(--surface);
+    margin: 50px 0 60px;
+  }
+  .reel-track {
+    display: flex; gap: 55px;
+    animation: ticker 28s linear infinite;
+    white-space: nowrap; width: max-content;
+  }
+  .reel-track:hover { animation-play-state: paused; }
+  .reel-item {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(10px, 1.1vw, 12px);
+    letter-spacing: 0.1em; color: var(--muted); flex-shrink: 0;
+  }
+  .reel-item b { color: var(--white); font-weight: 400; }
+  .rdot { color: var(--gold); margin: 0 5px; }
+
+  /* ── LAYOUT ── */
+  .container {
+    max-width: 1160px;
+    margin: 0 auto;
+    padding: 0 clamp(20px, 5vw, 60px) 100px;
+  }
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: clamp(40px, 6vw, 80px);
+    align-items: start;
+  }
+
+  /* ── SECTION LABEL ── */
+  .sec-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(9px, 1vw, 10px);
+    letter-spacing: 0.38em;
+    color: var(--gold);
+    text-transform: uppercase;
+    margin-bottom: clamp(20px, 3vw, 28px);
+    display: flex; align-items: center; gap: 14px;
+  }
+  .sec-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* ── ABOUT ── */
+  .about-text {
+    font-size: clamp(17px, 2vw, 20px);
+    font-weight: 300; line-height: 1.75;
+    color: rgba(240,237,232,0.85);
+    max-width: 640px;
+    margin-bottom: clamp(50px, 7vw, 80px);
+  }
+  .about-text strong { color: var(--white); font-weight: 600; }
+
+  /* ── PROJECTS GRID ── */
+  .projects-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 3px;
+    margin-bottom: clamp(50px, 7vw, 80px);
+  }
+  .project-card {
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    aspect-ratio: 2/3;
+    display: block;
+    text-decoration: none;
+  }
+  .project-card img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.4s ease, filter 0.4s ease;
+    filter: brightness(0.7) saturate(0.8);
+  }
+  .project-card:hover img {
+    transform: scale(1.05);
+    filter: brightness(0.5) saturate(0.6);
+  }
+  .card-overlay {
+    position: absolute; inset: 0;
+    background: linear-gradient(to top, rgba(9,13,17,0.95) 0%, rgba(9,13,17,0.2) 60%, transparent 100%);
+    transition: opacity 0.3s;
+  }
+  .card-hover-overlay {
+    position: absolute; inset: 0;
+    background: rgba(9,13,17,0.5);
+    opacity: 0; transition: opacity 0.3s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .imdb-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--gold);
+    border: 1px solid var(--gold);
+    padding: 6px 14px;
+    border-radius: 2px;
+    text-transform: uppercase;
+  }
+  .project-card:hover .card-hover-overlay { opacity: 1; }
+  .card-info {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: clamp(10px, 2vw, 16px);
+  }
+  .card-platform {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(8px, 0.9vw, 10px);
+    letter-spacing: 0.25em;
+    color: var(--card-accent, var(--gold));
+    text-transform: uppercase;
+    margin-bottom: 5px;
+  }
+  .card-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(15px, 1.8vw, 21px);
+    letter-spacing: 0.04em;
+    color: var(--white);
+    line-height: 1.1;
+  }
+
+  /* ── EXPERIENCE ── */
+  .exp-item {
+    padding: clamp(20px, 3vw, 32px) 0;
+    border-bottom: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: clamp(140px, 18vw, 200px) 1fr;
+    gap: clamp(20px, 4vw, 40px);
+  }
+  .exp-item:last-child { border-bottom: none; }
+  .exp-meta { padding-top: 4px; }
+  .exp-period {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(10px, 1.1vw, 11px);
+    color: var(--gold); margin-bottom: 5px;
+  }
+  .exp-company { font-size: clamp(13px, 1.3vw, 14px); color: var(--muted); }
+  .exp-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(20px, 2.5vw, 26px);
+    letter-spacing: 0.04em;
+    color: var(--white); line-height: 1.1; margin-bottom: 12px;
+  }
+  .exp-bullets { list-style: none; font-size: clamp(13px, 1.4vw, 15px); color: rgba(240,237,232,0.75); }
+  .exp-bullets li { padding: 3px 0 3px 18px; position: relative; }
+  .exp-bullets li::before { content: '▸'; position: absolute; left: 0; color: var(--accent); font-size: 11px; top: 6px; }
+
+  /* ── SIDEBAR ── */
+  .sidebar-block { background: var(--surface); padding: clamp(20px, 3vw, 32px) clamp(16px, 2.5vw, 28px); margin-bottom: 2px; }
+  .sidebar-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px; letter-spacing: 0.32em; color: var(--gold);
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 10px; margin-bottom: 16px;
+  }
+  .skill-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.03);
+    font-size: clamp(12px, 1.3vw, 14px); color: var(--white);
+  }
+  .skill-row:last-child { border-bottom: none; }
+  .skill-dots { display: flex; gap: 3px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; }
+  .dot.on { background: var(--gold); }
+  .dot.off { background: var(--border); }
+  .tool-tag {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(9px, 1vw, 11px);
+    padding: 4px 9px;
+    background: var(--surface2); color: var(--white);
+    margin: 3px 2px 3px 0;
+    border: 1px solid var(--border); border-radius: 2px;
+  }
+  .cert-item { padding: 7px 0; border-bottom: 1px solid var(--border); }
+  .cert-item:last-child { border-bottom: none; }
+  .cert-name { font-size: clamp(12px, 1.3vw, 14px); color: var(--white); font-weight: 600; }
+  .cert-date { font-family: 'JetBrains Mono', monospace; font-size: 10px; color: var(--muted); margin-top: 2px; }
+  .lang-row { display: flex; justify-content: space-between; font-size: clamp(12px, 1.3vw, 14px); padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+  .lang-row span:last-child { color: var(--gold); font-family: 'JetBrains Mono', monospace; font-size: 10px; }
+
+  /* ── FOOTER ── */
+  .footer {
+    border-top: 1px solid var(--border);
+    padding: clamp(24px, 3vw, 40px) clamp(20px, 5vw, 60px);
+    max-width: 1160px; margin: 0 auto;
+    display: flex; flex-wrap: wrap;
+    justify-content: space-between; align-items: center; gap: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(9px, 1vw, 11px); color: var(--muted);
+  }
+  .footer a { color: var(--accent); text-decoration: none; }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp { from { opacity:0; transform:translateY(22px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes ticker { from { transform:translateX(0); } to { transform:translateX(-50%); } }
+  .reveal { opacity:0; transform:translateY(18px); transition: opacity 0.65s ease, transform 0.65s ease; }
+  .reveal.visible { opacity:1; transform:translateY(0); }
+
+  /* ── MOBILE ── */
+  @media (max-width: 768px) {
+    .hero { min-height: 100svh; padding-bottom: 48px; }
+    .filmstrip { gap: 14px; padding: 0 14px; }
+    .hole { width: 10px; height: 7px; }
+
+    .two-col {
+      grid-template-columns: 1fr;
+      gap: 0;
+    }
+    .sidebar-col { order: -1; margin-bottom: 4px; }
+
+    .projects-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .exp-item {
+      grid-template-columns: 1fr;
+      gap: 6px;
+    }
+    .exp-meta { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+
+    .hero-meta .sep { display: none; }
+    .hero-meta { row-gap: 6px; }
+  }
+
+  @media (max-width: 420px) {
+    .projects-grid { grid-template-columns: repeat(2, 1fr); }
+    .hero-name { font-size: clamp(44px, 13vw, 60px); }
+  }
+
+  /* ── PRINT ── */
+  @media print {
+    body::after { display: none; }
+    .hero { min-height: auto; padding: 30px clamp(24px,6vw,80px) 30px; }
+    .filmstrip { display: none; }
+    .reel-wrap { display: none; }
+    .hero-name, .about-text, .eyebrow, .hero-title, .hero-meta { opacity:1; animation:none; }
+    .reveal { opacity:1; transform:none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="filmstrip top">
+    <div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div>
+    <div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div>
+    <div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div>
+    <div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div>
+    <div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div>
+  </div>
+
+  <div class="hero-inner">
+    <p class="eyebrow">♦ Conform • VFX • Digital Intermediate ♦</p>
+    <h1 class="hero-name">
+      JÚLIO CÉSAR<span>VIVEIRO GONÇALVES</span>
+    </h1>
+    <p class="hero-title">Editor de Conform · VFX · DI · 7+ anos em pós-produção audiovisual</p>
+    <div class="hero-meta">
+      <span>(11) 98591-4557</span>
+      <span class="sep">|</span>
+      <a href="/cdn-cgi/l/email-protection#6f051a030600300c0a1c0e1d190800010c0e03190a1c2f07001b020e0603410c0002"><span class="__cf_email__" data-cfemail="93f9e6fffafcccf0f6e0f2e1e5f4fcfdf0f2ffe5f6e0d3fbfce7fef2faffbdf0fcfe">[email&#160;protected]</span></a>
+      <span class="sep">|</span>
+      <a href="https://www.linkedin.com/in/juliocesarpostproduction/" target="_blank">LinkedIn</a>
+      <span class="sep">|</span>
+      <span>São Paulo, SP</span>
+      <span class="sep">|</span>
+      <span>DRT: 0042339SP</span>
+    </div>
+  </div>
+
+  <div class="filmstrip bot">
+    <div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div>
+    <div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div>
+    <div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div>
+    <div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div>
+    <div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div>
+  </div>
+</section>
+
+<!-- TICKER -->
+<div class="reel-wrap">
+  <div class="reel-track">
+    <span class="reel-item"><b>CONFORM</b><span class="rdot">◆</span></span>
+    <span class="reel-item"><b>VFX PULL RENDERING</b><span class="rdot">◆</span></span>
+    <span class="reel-item"><b>DaVinci Resolve Studio</b><span class="rdot">◆</span></span>
+    <span class="reel-item"><b>Baselight</b><span class="rdot">◆</span></span>
+    <span class="reel-item"><b>DIGITAL INTERMEDIATE</b><span class="rdot">◆</span></span>
+    <span class="reel-item"><b>Dolby Vision</b><span class="rdot">◆</span></span>
+    <span class="reel-item"><b>HDR / SDR PIPELINE</b><span class="rdot">◆</span></span>
+    <span class="reel-item"><b>DCP / IMF</b><span class="rdot">◆</span></span>
+    <span class="reel-item"><b>NETFLIX DELIVERY</b><span class="rdot">◆</span></span>
+    <span class="reel-item"><b>QC &amp; COMPLIANCE</b><span class="rdot">◆</span></span>
+    <span class="reel-item"><b>CONFORM</b><span class="rdot">◆</span></span>
+    <span class="reel-item"><b>VFX PULL RENDERING</b><span class="rdot">◆</span></span>
+    <span class="reel-item"><b>DaVinci Resolve Studio</b><span class="rdot">◆</span></span>
+    <span class="reel-item"><b>Baselight</b><span class="rdot">◆</span></span>
+    <span class="reel-item"><b>DIGITAL INTERMEDIATE</b><span class="rdot">◆</span></span>
+    <span class="reel-item"><b>Dolby Vision</b><span class="rdot">◆</span></span>
+    <span class="reel-item"><b>HDR / SDR PIPELINE</b><span class="rdot">◆</span></span>
+    <span class="reel-item"><b>DCP / IMF</b><span class="rdot">◆</span></span>
+    <span class="reel-item"><b>NETFLIX DELIVERY</b><span class="rdot">◆</span></span>
+    <span class="reel-item"><b>QC &amp; COMPLIANCE</b><span class="rdot">◆</span></span>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="container">
+
+  <p class="about-text reveal">
+    Com mais de <strong>7 anos</strong> em pós-produção, sou especialista em <strong>conform, VFX pull rendering</strong> e finalização técnica para cinema, séries e publicidade. Meu trabalho é garantir que cada projeto chegue à tela com precisão total — do setup inicial ao <strong>master final</strong> entregue para Netflix, Disney+ e outras plataformas globais.
+  </p>
+
+  <div class="two-col">
+    <div class="main-col">
+
+      <!-- PROJETOS -->
+      <div class="sec-label reveal">Projetos Destacados</div>
+      <div class="projects-grid reveal">
+
+        <a class="project-card" href="https://www.imdb.com/title/tt12987918/" target="_blank" rel="noopener" style="--card-accent:#E50914">
+          <img src="https://m.media-amazon.com/images/M/MV5BMzcyNjFjNjQtNTYxMS00N2YzLWI5YjQtNGE0M2U0ZGRkOGMwXkEyXkFqcGc@._V1_SX300.jpg" alt="Bom Dia Verônica" loading="lazy">
+          <div class="card-overlay"></div>
+          <div class="card-hover-overlay"><span class="imdb-badge">Ver no IMDb</span></div>
+          <div class="card-info">
+            <div class="card-platform">Netflix</div>
+            <div class="card-title">Bom Dia Verônica</div>
+          </div>
+        </a>
+
+        <a class="project-card" href="https://www.imdb.com/title/tt26787296/" target="_blank" rel="noopener" style="--card-accent:#C41515">
+          <img src="https://m.media-amazon.com/images/M/MV5BOGVmODcyMmQtN2FlYy00ZjhlLWIyMDEtNzkyZmZiNDk1YzRjXkEyXkFqcGc@._V1_SX300.jpg" alt="Burning Betrayal" loading="lazy">
+          <div class="card-overlay"></div>
+          <div class="card-hover-overlay"><span class="imdb-badge">Ver no IMDb</span></div>
+          <div class="card-info">
+            <div class="card-platform">Netflix</div>
+            <div class="card-title">Burning Betrayal</div>
+          </div>
+        </a>
+
+        <a class="project-card" href="https://www.imdb.com/title/tt27579820/" target="_blank" rel="noopener" style="--card-accent:#1A6A2E">
+          <img src="https://m.media-amazon.com/images/M/MV5BODQwZTY3ZjUtNzc4Ny00MWI0LWJhOWMtZDY4NWJiOGI1ZWU5XkEyXkFqcGc@._V1_SX300.jpg" alt="Um Ano Inesquecível: Inverno" loading="lazy">
+          <div class="card-overlay"></div>
+          <div class="card-hover-overlay"><span class="imdb-badge">Ver no IMDb</span></div>
+          <div class="card-info">
+            <div class="card-platform">Prime Video</div>
+            <div class="card-title">Um Ano Inesquecível: Inverno</div>
+          </div>
+        </a>
+
+        <a class="project-card" href="https://www.imdb.com/title/tt16225592/" target="_blank" rel="noopener" style="--card-accent:#006E99">
+          <img src="https://m.media-amazon.com/images/M/MV5BNWQxMmUyYjgtNmFlNS00ZGM3LWFlZWItN2YzODhhZWQwNzRkXkEyXkFqcGc@._V1_SX300.jpg" alt="A Magia de Aruna" loading="lazy">
+          <div class="card-overlay"></div>
+          <div class="card-hover-overlay"><span class="imdb-badge">Ver no IMDb</span></div>
+          <div class="card-info">
+            <div class="card-platform">Disney+</div>
+            <div class="card-title">A Magia de Aruna</div>
+          </div>
+        </a>
+
+        <a class="project-card" href="https://www.imdb.com/title/tt27526661/" target="_blank" rel="noopener" style="--card-accent:#3D6EC9">
+          <img src="https://m.media-amazon.com/images/M/MV5BZmYyOGMwMDItNzUwZC00OGY4LTg0ZmEtZTg5ZmI5MWRhMDY1XkEyXkFqcGc@._V1_SX300.jpg" alt="Desejos S.A." loading="lazy">
+          <div class="card-overlay"></div>
+          <div class="card-hover-overlay"><span class="imdb-badge">Ver no IMDb</span></div>
+          <div class="card-info">
+            <div class="card-platform">Star+</div>
+            <div class="card-title">Desejos S.A.</div>
+          </div>
+        </a>
+
+        <a class="project-card" href="https://www.imdb.com/title/tt9265520/" target="_blank" rel="noopener" style="--card-accent:#1A6A2E">
+          <img src="https://a.ltrbxd.com/resized/film-poster/8/2/3/9/6/2/823962-meu-album-de-amores-0-230-0-345-crop.jpg" alt="Meu Álbum de Amores" loading="lazy">
+          <div class="card-overlay"></div>
+          <div class="card-hover-overlay"><span class="imdb-badge">Ver no IMDb</span></div>
+          <div class="card-info">
+            <div class="card-platform">Prime Video</div>
+            <div class="card-title">Meu Álbum de Amores</div>
+          </div>
+        </a>
+
+      </div><!-- /projects-grid -->
+
+      <!-- EXPERIÊNCIA -->
+      <div class="sec-label reveal" style="margin-top:10px">Experiência Profissional</div>
+
+      <div class="exp-item reveal">
+        <div class="exp-meta">
+          <div class="exp-period">Nov 2018 — Presente</div>
+          <div class="exp-company">DOT CINE</div>
+        </div>
+        <div>
+          <div class="exp-title">Editor de Conform &amp; Finalização</div>
+          <ul class="exp-bullets">
+            <li>Conform de longas-metragens, séries e campanhas publicitárias</li>
+            <li>VFX pull rendering via DaVinci Resolve console scripting; automação de workflows</li>
+            <li>Preparação de arquivos para color, QC de projetos, finalização de masters</li>
+            <li>Entregas para Netflix, Disney+, Star+ e Prime Video com compliance técnico total</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="exp-item reveal">
+        <div class="exp-meta">
+          <div class="exp-period">Fev — Nov 2018</div>
+          <div class="exp-company">Tangerina Entretenimento</div>
+        </div>
+        <div>
+          <div class="exp-title">Assistente de Montagem</div>
+          <ul class="exp-bullets">
+            <li>Ingest e organização de material bruto, sync de câmeras e áudio</li>
+            <li>QC de imagem e suporte direto aos montadores</li>
+            <li>Finalização de episódios com logos, blurs e créditos</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="exp-item reveal">
+        <div class="exp-meta">
+          <div class="exp-period">Fev 2012 — Jan 2018</div>
+          <div class="exp-company">TVT — TV do Trabalhador</div>
+        </div>
+        <div>
+          <div class="exp-title">Editor de VT Sênior</div>
+          <ul class="exp-bullets">
+            <li>Edição jornalística e programas semanais em workflows broadcast</li>
+            <li>Gerenciamento de mídia, ingest e conformidade com prazos</li>
+            <li>Supervisão técnica de projetos de TV</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="exp-item reveal">
+        <div class="exp-meta">
+          <div class="exp-period">Mar 2011 — Jan 2018</div>
+          <div class="exp-company">Freelancer</div>
+        </div>
+        <div>
+          <div class="exp-title">Editor de Vídeo &amp; Motion Designer</div>
+          <ul class="exp-bullets">
+            <li>Pós-produção para TV, publicidade, institucional e eventos</li>
+            <li>Adobe Premiere, After Effects, Final Cut, Scratch Assimilate</li>
+          </ul>
+        </div>
+      </div>
+
+    </div><!-- /main-col -->
+
+    <!-- SIDEBAR -->
+    <div class="sidebar-col">
+
+      <div class="sidebar-block reveal">
+        <div class="sidebar-label">Especialidades</div>
+        <div class="skill-row">
+          <span>Conform &amp; VFX</span>
+          <div class="skill-dots"><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div></div>
+        </div>
+        <div class="skill-row">
+          <span>VFX Pull Rendering</span>
+          <div class="skill-dots"><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div></div>
+        </div>
+        <div class="skill-row">
+          <span>Finalização / DI</span>
+          <div class="skill-dots"><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div></div>
+        </div>
+        <div class="skill-row">
+          <span>HDR / Dolby Vision</span>
+          <div class="skill-dots"><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div></div>
+        </div>
+        <div class="skill-row">
+          <span>Color Pipeline</span>
+          <div class="skill-dots"><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div></div>
+        </div>
+        <div class="skill-row">
+          <span>QC &amp; Compliance</span>
+          <div class="skill-dots"><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div><div class="dot off"></div></div>
+        </div>
+      </div>
+
+      <div class="sidebar-block reveal">
+        <div class="sidebar-label">Ferramentas</div>
+        <span class="tool-tag">DaVinci Resolve Studio</span>
+        <span class="tool-tag">Baselight</span>
+        <span class="tool-tag">Avid</span>
+        <span class="tool-tag">Premiere Pro</span>
+        <span class="tool-tag">After Effects</span>
+        <span class="tool-tag">Scratch</span>
+        <span class="tool-tag">Final Cut X</span>
+      </div>
+
+      <div class="sidebar-block reveal">
+        <div class="sidebar-label">Formação &amp; Certificações</div>
+        <div class="cert-item">
+          <div class="cert-name">Dolby Vision Essentials</div>
+          <div class="cert-date">Concluído 04/11/2025</div>
+        </div>
+        <div class="cert-item">
+          <div class="cert-name">Bacharelado em Comunicação Social</div>
+          <div class="cert-date">USCS · 2009–2012</div>
+        </div>
+      </div>
+
+      <div class="sidebar-block reveal">
+        <div class="sidebar-label">Idiomas</div>
+        <div class="lang-row"><span>Português</span><span>Nativo</span></div>
+        <div class="lang-row"><span>Inglês</span><span>Fluente</span></div>
+      </div>
+
+    </div><!-- /sidebar-col -->
+  </div><!-- /two-col -->
+</div><!-- /container -->
+
+<footer class="footer">
+  <span>JÚLIO CÉSAR VIVEIRO GONÇALVES &nbsp;·&nbsp; DRT 0042339SP</span>
+  <a href="https://www.linkedin.com/in/juliocesarpostproduction/" target="_blank">linkedin.com/in/juliocesarpostproduction</a>
+</footer>
+
+<script>
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if(e.isIntersecting) {
+        e.target.classList.add('visible');
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+</script>
+</body>
+</html>
