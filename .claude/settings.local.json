@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.imdb.com)",
+      "WebSearch",
+      "WebFetch(domain:m.imdb.com)",
+      "WebFetch(domain:www.themoviedb.org)",
+      "WebFetch(domain:api.themoviedb.org)",
+      "WebFetch(domain:image.tmdb.org)"
+    ]
+  }
+}
