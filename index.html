@@ -825,6 +825,40 @@
         flex: 0 0 calc(85% - 10px);
       }
     }
+
+    /* ── MOBILE REFINEMENTS ── */
+    @media (max-width: 768px) {
+      .hero-name {
+        font-size: clamp(34px, 9vw, 54px);
+      }
+
+      /* Reduz o brilho dourado que fica muito forte em telas pequenas */
+      .hero-name span {
+        text-shadow: 0 0 12px rgba(232, 168, 56, 0.15);
+      }
+
+      .eyebrow {
+        font-size: 9px;
+        letter-spacing: 0.2em;
+      }
+
+      .hero-inner {
+        padding: 0 clamp(16px, 4vw, 24px);
+      }
+    }
+
+    /* Corrige o colapso para coluna única que tornava os cartazes gigantes */
+    @media (max-width: 420px) {
+      .projects-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+      }
+
+      /* Carrossel em 75% para deixar claro que há mais cards para rolar */
+      .carousel-card {
+        flex: 0 0 calc(75% - 10px);
+      }
+    }
   </style>
 </head>
 
