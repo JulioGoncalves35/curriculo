@@ -1,0 +1,820 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Júlio César — Editor de Conform | VFX | DI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,300;1,400&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #06090d;
+    --surface:  #0a1118;
+    --surface2: #121c26;
+    --gold:     #e8a838;
+    --gold-glow: rgba(232, 168, 56, 0.4);
+    --teal:     #17a2b8;
+    --accent:   #2aa1d9;
+    --white:    #F0EDE8;
+    --muted:    #7A8899;
+    --border:   #1A2530;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; cursor: none; }
+
+  body {
+    background: var(--bg);
+    color: var(--white);
+    font-family: 'Crimson Pro', Georgia, serif;
+    font-size: 17px;
+    line-height: 1.65;
+    overflow-x: hidden;
+  }
+
+  /* Custom Cursor */
+  .custom-cursor {
+    position: fixed;
+    top: 0; left: 0;
+    width: 12px; height: 12px;
+    background: var(--gold);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 99999;
+    transform: translate(-50%, -50%);
+    transition: width 0.2s, height 0.2s, background-color 0.2s, mix-blend-mode 0.2s;
+    mix-blend-mode: exclusion;
+  }
+  .custom-cursor.hovering {
+    width: 60px; height: 60px;
+    background: var(--white);
+    mix-blend-mode: exclusion;
+  }
+
+  /* Vignette & Grain */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 9997;
+    pointer-events: none;
+    background: radial-gradient(circle at center, transparent 30%, rgba(0,0,0,0.85) 120%);
+  }
+  body::after {
+    content: '';
+    position: fixed; inset: 0; z-index: 9998;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    opacity: 0.35;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    position: relative;
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding-bottom: 60px;
+    overflow: hidden;
+  }
+  .hero-bg {
+    position: absolute; inset: 0;
+    background: radial-gradient(circle at 50% 30%, rgba(23, 162, 184, 0.08) 0%, transparent 60%);
+  }
+  .filmstrip {
+    position: absolute; left: 0; right: 0; height: 26px;
+    display: flex; align-items: center; gap: 20px; padding: 0 24px;
+    z-index: 2; overflow: hidden; opacity: 0.05;
+  }
+  .filmstrip.top { top: 20px; }
+  .filmstrip.bot { bottom: 20px; }
+  .hole { width: 13px; height: 9px; background: var(--white); border-radius: 2px; flex-shrink: 0; }
+
+  .hero-inner {
+    position: relative; z-index: 3;
+    padding: 0 clamp(24px, 6vw, 80px);
+    text-align: center;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .eyebrow {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(10px, 1.2vw, 12px);
+    letter-spacing: 0.4em;
+    color: var(--teal);
+    text-transform: uppercase;
+    margin-bottom: clamp(20px, 4vh, 40px);
+    opacity: 0; animation: focusIn 1.2s 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .hero-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(60px, 12vw, 180px);
+    line-height: 0.82;
+    color: var(--white);
+    text-shadow: 0 20px 40px rgba(0,0,0,0.8);
+    opacity: 0; animation: focusIn 1.4s 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    letter-spacing: -0.01em;
+  }
+  .hero-name span { 
+    color: transparent; 
+    -webkit-text-stroke: 2px var(--gold);
+    text-stroke: 2px var(--gold);
+    display: block; 
+    position: relative;
+    text-shadow: 0 0 30px var(--gold-glow);
+  }
+  .hero-title {
+    font-family: 'Crimson Pro', serif;
+    font-size: clamp(16px, 2vw, 24px);
+    font-weight: 300; font-style: italic;
+    color: var(--muted);
+    margin-top: clamp(20px, 3vw, 40px);
+    opacity: 0; animation: focusIn 1.2s 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .hero-meta {
+    display: flex; flex-wrap: wrap; justify-content: center;
+    gap: clamp(15px, 2vw, 35px);
+    margin-top: clamp(30px, 4vw, 50px);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(11px, 1.2vw, 13px);
+    color: var(--muted);
+    opacity: 0; animation: focusIn 1.2s 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .hero-meta a, .hero-meta span { 
+    color: var(--white); text-decoration: none; 
+    transition: color 0.3s, text-shadow 0.3s;
+  }
+  .hero-meta a:hover { 
+    color: var(--gold); text-shadow: 0 0 10px var(--gold-glow);
+  }
+  .sep { color: var(--border); }
+
+  /* ── TICKER ── */
+  .reel-wrap {
+    overflow: hidden;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    padding: 18px 0;
+    margin: 20px 0 80px;
+    background: linear-gradient(90deg, transparent, rgba(23, 162, 184, 0.05) 50%, transparent);
+  }
+  .reel-track {
+    display: flex; gap: 60px;
+    animation: ticker 35s linear infinite;
+    white-space: nowrap; width: max-content;
+  }
+  .reel-item {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(11px, 1.2vw, 13px);
+    letter-spacing: 0.15em; color: var(--teal); flex-shrink: 0;
+  }
+  .reel-item b { color: var(--white); font-weight: 400; }
+  .rdot { color: var(--gold); margin: 0 10px; opacity: 0.5; }
+
+  /* ── LAYOUT ── */
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 clamp(20px, 5vw, 60px) 100px;
+  }
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: clamp(50px, 6vw, 100px);
+    align-items: start;
+  }
+
+  /* ── SECTION LABEL ── */
+  .sec-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(10px, 1vw, 12px);
+    letter-spacing: 0.4em;
+    color: var(--teal);
+    text-transform: uppercase;
+    margin-bottom: clamp(30px, 3vw, 40px);
+    display: flex; align-items: center; gap: 20px;
+  }
+  .sec-label::after { content: ''; flex: 1; height: 1px; background: rgba(255,255,255,0.1); }
+
+  /* ── ABOUT ── */
+  .about-text {
+    font-size: clamp(18px, 2.2vw, 24px);
+    font-weight: 300; line-height: 1.6;
+    color: rgba(240,237,232,0.85);
+    max-width: 700px;
+    margin-bottom: clamp(70px, 8vw, 100px);
+  }
+  .about-text strong { color: var(--white); font-weight: 600; text-shadow: 0 0 15px rgba(255,255,255,0.2); }
+
+  /* ── PROJECTS GRID (3D TILT) ── */
+  .projects-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-bottom: clamp(60px, 8vw, 100px);
+    perspective: 1000px;
+  }
+  
+  .project-card, .carousel-card {
+    position: relative;
+    overflow: hidden;
+    cursor: none;
+    aspect-ratio: 2/3;
+    display: block;
+    text-decoration: none;
+    border-radius: 4px;
+    transform-style: preserve-3d;
+    transition: transform 0.1s ease-out, box-shadow 0.3s;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  }
+  .project-card::before, .carousel-card::before {
+    content: ''; position: absolute; inset: 0; z-index: 2;
+    background: linear-gradient(to top, rgba(6,9,13,0.95) 0%, transparent 60%);
+  }
+  
+  /* Hover reflection effect */
+  .card-glare {
+    position: absolute; width: 100%; height: 100%; top: 0; left: 0; z-index: 3;
+    background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.2) 0%, transparent 60%);
+    opacity: 0; pointer-events: none; mix-blend-mode: overlay; transition: opacity 0.3s;
+  }
+
+  .project-card img, .carousel-card img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), filter 0.5s ease;
+    filter: brightness(0.7) contrast(1.1) saturate(0.8);
+  }
+  .project-card:hover, .carousel-card:hover { z-index: 10; box-shadow: 0 20px 50px rgba(0,0,0,0.9), 0 0 30px var(--gold-glow); }
+  .project-card:hover img, .carousel-card:hover img {
+    transform: scale(1.08); /* Zoom on tilt */
+    filter: brightness(0.9) contrast(1.2) saturate(1.1);
+  }
+  .project-card:hover .card-glare, .carousel-card:hover .card-glare { opacity: 1; }
+  
+  .card-hover-overlay {
+    position: absolute; inset: 0;
+    background: rgba(6,9,13,0.3);
+    opacity: 0; transition: opacity 0.3s;
+    display: flex; align-items: center; justify-content: center; z-index: 4;
+  }
+  .imdb-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.12em; color: var(--gold);
+    border: 1px solid var(--gold); padding: 8px 16px; border-radius: 2px;
+    text-transform: uppercase; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
+  }
+  .project-card:hover .card-hover-overlay, .carousel-card:hover .card-hover-overlay { opacity: 1; }
+  
+  .card-info {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    padding: clamp(15px, 2vw, 24px); z-index: 5;
+    transform: translateZ(30px); /* Popping text out in 3D */
+  }
+  .card-platform {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(9px, 1vw, 11px); letter-spacing: 0.25em;
+    color: var(--card-accent, var(--gold));
+    text-transform: uppercase; margin-bottom: 8px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+  }
+  .card-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(18px, 2vw, 24px); letter-spacing: 0.04em;
+    color: var(--white); line-height: 1.1;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.8);
+  }
+
+  /* CAROUSEL */
+  .carousel-wrap {
+    position: relative;
+    margin-bottom: clamp(60px, 8vw, 100px);
+    perspective: 1000px; /* needed for tilt to work properly inside flex */
+  }
+  .carousel-track {
+    display: flex;
+    gap: 15px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    padding-bottom: 20px;
+  }
+  .carousel-track::-webkit-scrollbar { height: 6px; }
+  .carousel-track::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); border-radius: 6px; }
+  .carousel-track::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 6px; }
+  .carousel-track::-webkit-scrollbar-thumb:hover { background: var(--teal); }
+
+  .carousel-card {
+    scroll-snap-align: start;
+    flex: 0 0 calc(33.333% - 10px);
+  }
+
+  .carousel-btn {
+    position: absolute;
+    top: calc(50% - 10px);
+    transform: translateY(-50%);
+    width: 44px; height: 44px;
+    background: rgba(6,9,13,0.8);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--white);
+    border-radius: 50%;
+    cursor: none; /* using our custom cursor */
+    z-index: 20;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    backdrop-filter: blur(4px);
+    transition: background 0.3s, color 0.3s, border-color 0.3s, transform 0.2s;
+  }
+  .carousel-btn:hover { background: var(--teal); color: var(--bg); border-color: var(--teal); transform: translateY(-50%) scale(1.1); }
+  .carousel-btn.left { left: -22px; }
+  .carousel-btn.right { right: -22px; }
+
+  /* ── EXPERIENCE ── */
+  .exp-item {
+    padding: clamp(30px, 4vw, 40px) 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    display: grid;
+    grid-template-columns: clamp(160px, 20vw, 220px) 1fr;
+    gap: clamp(30px, 4vw, 50px);
+  }
+  .exp-item:last-child { border-bottom: none; }
+  .exp-meta { padding-top: 6px; }
+  .exp-period {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(11px, 1.2vw, 13px);
+    color: var(--gold); margin-bottom: 8px;
+  }
+  .exp-company { font-size: clamp(14px, 1.5vw, 16px); color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+  .exp-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(24px, 3vw, 32px);
+    letter-spacing: 0.04em;
+    color: var(--white); line-height: 1.1; margin-bottom: 16px;
+  }
+  .exp-bullets { list-style: none; font-size: clamp(15px, 1.6vw, 17px); color: rgba(240,237,232,0.75); }
+  .exp-bullets li { padding: 5px 0 5px 22px; position: relative; }
+  .exp-bullets li::before { content: '—'; position: absolute; left: 0; color: var(--teal); font-size: 12px; top: 8px; }
+
+  /* ── SIDEBAR ── */
+  .sidebar-block { background: rgba(255,255,255,0.02); padding: clamp(30px, 4vw, 40px) clamp(24px, 3vw, 32px); margin-bottom: 15px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.03); backdrop-filter: blur(10px); }
+  .sidebar-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.4em; color: var(--teal);
+    text-transform: uppercase;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    padding-bottom: 14px; margin-bottom: 24px;
+  }
+  .skill-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 0; border-bottom: 1px dotted rgba(255,255,255,0.05);
+    font-size: clamp(14px, 1.5vw, 16px); color: var(--white); font-family: 'Crimson Pro', serif;
+  }
+  .skill-row:last-child { border-bottom: none; }
+  .skill-dots { display: flex; gap: 4px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; box-shadow: 0 0 5px rgba(0,0,0,0.5); }
+  .dot.on { background: var(--gold); box-shadow: 0 0 5px var(--gold-glow); }
+  .dot.off { background: rgba(255,255,255,0.1); }
+  
+  .tool-tag {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(10px, 1.1vw, 12px);
+    padding: 6px 12px;
+    background: rgba(255,255,255,0.03); color: var(--white);
+    margin: 4px 3px 4px 0;
+    border: 1px solid rgba(255,255,255,0.08); border-radius: 20px;
+    transition: background 0.3s, color 0.3s, border-color 0.3s;
+  }
+  .tool-tag:hover { background: var(--teal); color: var(--bg); border-color: var(--teal); }
+
+  .cert-item { padding: 10px 0; border-bottom: 1px dotted rgba(255,255,255,0.05); }
+  .cert-item:last-child { border-bottom: none; }
+  .cert-name { font-size: clamp(14px, 1.5vw, 16px); color: var(--white); font-weight: 600; }
+  .cert-date { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--teal); margin-top: 4px; }
+  .lang-row { display: flex; justify-content: space-between; font-size: clamp(14px, 1.5vw, 16px); padding: 8px 0; border-bottom: 1px dotted rgba(255,255,255,0.05); }
+  .lang-row span:last-child { color: var(--gold); font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+
+  /* ── FOOTER ── */
+  .footer {
+    border-top: 1px solid rgba(255,255,255,0.05);
+    padding: clamp(40px, 5vw, 60px) clamp(20px, 5vw, 60px);
+    max-width: 1200px; margin: 0 auto;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 15px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(10px, 1.2vw, 12px); color: var(--muted); text-align: center;
+  }
+  .footer a { color: var(--teal); text-decoration: none; transition: color 0.3s; }
+  .footer a:hover { color: var(--gold); }
+
+  /* ── ANIMATIONS ── */
+  @keyframes focusIn { 
+    0% { opacity: 0; filter: blur(15px); transform: scale(1.05) translateY(10px); } 
+    100% { opacity: 1; filter: blur(0px); transform: scale(1) translateY(0); } 
+  }
+  @keyframes ticker { from { transform:translateX(0); } to { transform:translateX(-50%); } }
+  
+  .reveal { opacity: 0; filter: blur(8px); transform: translateY(20px); transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), filter 0.8s cubic-bezier(0.16, 1, 0.3, 1); }
+  .reveal.visible { opacity: 1; filter: blur(0); transform: translateY(0); }
+
+  /* ── MOBILE ── */
+  @media (max-width: 768px) {
+    html { cursor: auto; } .custom-cursor { display: none; }
+    .hero { min-height: 100svh; padding-bottom: 48px; }
+    .filmstrip { gap: 14px; padding: 0 14px; opacity: 0.02; }
+    
+    .two-col { grid-template-columns: 1fr; gap: 40px; }
+    .sidebar-col { order: 1; } /* Moved sidebar below experience on mobile */
+
+    .projects-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .project-card, .carousel-card { transform: none !important; box-shadow: none !important; }
+
+    .carousel-btn { display: none; } /* Hide arrows on touch devices */
+    .carousel-card { flex: 0 0 calc(50% - 7.5px); }
+
+    .exp-item { grid-template-columns: 1fr; gap: 10px; }
+    .exp-meta { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
+  }
+
+  @media (max-width: 420px) {
+    .projects-grid { grid-template-columns: 1fr; }
+    .carousel-card { flex: 0 0 calc(85% - 10px); }
+  }
+</style>
+</head>
+<body>
+
+<div class="custom-cursor" id="cursor"></div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="filmstrip top">
+    <div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div>
+    <div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div>
+  </div>
+
+  <div class="hero-inner">
+    <p class="eyebrow">♦ Conform • VFX • Digital Intermediate ♦</p>
+    <h1 class="hero-name">
+      JÚLIO CÉSAR<span>VIVEIRO GONÇALVES</span>
+    </h1>
+    <p class="hero-title">Editor de Conform · VFX · DI · 7+ anos em pós-produção audiovisual</p>
+    <div class="hero-meta">
+      <a href="https://www.linkedin.com/in/juliocesarpostproduction/" target="_blank">LinkedIn</a>
+      <span class="sep">|</span>
+      <a href="https://www.imdb.com/name/nm11376662/?ref_=nv_sr_srsg_0_tt_0_nm_8_in_0_q_J%C3%BAlio%20C%C3%A9sar%20Viveiro%20Gon" target="_blank">IMDb Profile</a>
+      <span class="sep">|</span>
+      <a href="mailto:julio_cesarvgoncalves@hotmail.com">julio_cesarvgoncalves@hotmail.com</a>
+      <span class="sep">|</span>
+      <span>São Paulo, SP</span>
+    </div>
+  </div>
+
+  <div class="filmstrip bot">
+    <div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div>
+    <div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div><div class="hole"></div>
+  </div>
+</section>
+
+<!-- TICKER -->
+<div class="reel-wrap">
+  <div class="reel-track">
+    <span class="reel-item"><b>CONFORM</b><span class="rdot">◆</span></span>
+    <span class="reel-item"><b>VFX PULL RENDERING</b><span class="rdot">◆</span></span>
+    <span class="reel-item"><b>DaVinci Resolve Studio</b><span class="rdot">◆</span></span>
+    <span class="reel-item"><b>Baselight</b><span class="rdot">◆</span></span>
+    <span class="reel-item"><b>DIGITAL INTERMEDIATE</b><span class="rdot">◆</span></span>
+    <span class="reel-item"><b>Dolby Vision</b><span class="rdot">◆</span></span>
+    <span class="reel-item"><b>HDR / SDR PIPELINE</b><span class="rdot">◆</span></span>
+    <span class="reel-item"><b>DCP / IMF</b><span class="rdot">◆</span></span>
+    <span class="reel-item"><b>NETFLIX DELIVERY</b><span class="rdot">◆</span></span>
+    <span class="reel-item"><b>QC &amp; COMPLIANCE</b><span class="rdot">◆</span></span>
+    <span class="reel-item"><b>CONFORM</b><span class="rdot">◆</span></span>
+    <span class="reel-item"><b>VFX PULL RENDERING</b><span class="rdot">◆</span></span>
+    <span class="reel-item"><b>DaVinci Resolve Studio</b><span class="rdot">◆</span></span>
+    <span class="reel-item"><b>Baselight</b><span class="rdot">◆</span></span>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="container">
+
+  <p class="about-text reveal">
+    Com mais de <strong>7 anos</strong> em pós-produção, sou especialista em <strong>conform, VFX pull rendering</strong> e finalização técnica. Meu trabalho é garantir que cada projeto chegue à tela com precisão milimétrica — do workflow on-set até o <strong>master final HDR</strong> para Netflix, Disney+, Amazon e telas de cinema.
+  </p>
+
+  <div class="two-col">
+    <div class="main-col">
+
+      <!-- PROJETOS MAIN-->
+      <div class="sec-label reveal">Destaques Filmografia</div>
+      <div class="projects-grid reveal">
+
+        <a class="project-card" href="https://www.imdb.com/title/tt12987918/" target="_blank" style="--card-accent:#E50914">
+          <img src="https://m.media-amazon.com/images/M/MV5BMzcyNjFjNjQtNTYxMS00N2YzLWI5YjQtNGE0M2U0ZGRkOGMwXkEyXkFqcGc@._V1_SX300.jpg" alt="Bom Dia Verônica" loading="lazy">
+          <div class="card-glare"></div>
+          <div class="card-hover-overlay"><span class="imdb-badge">Ver no IMDb</span></div>
+          <div class="card-info">
+            <div class="card-platform">Netflix</div>
+            <div class="card-title">Bom Dia Verônica</div>
+          </div>
+        </a>
+
+        <a class="project-card" href="https://www.imdb.com/title/tt26787296/" target="_blank" style="--card-accent:#E50914">
+          <img src="https://m.media-amazon.com/images/M/MV5BOGVmODcyMmQtN2FlYy00ZjhlLWIyMDEtNzkyZmZiNDk1YzRjXkEyXkFqcGc@._V1_SX300.jpg" alt="Burning Betrayal" loading="lazy">
+          <div class="card-glare"></div>
+          <div class="card-hover-overlay"><span class="imdb-badge">Ver no IMDb</span></div>
+          <div class="card-info">
+            <div class="card-platform">Netflix</div>
+            <div class="card-title">Burning Betrayal</div>
+          </div>
+        </a>
+
+        <a class="project-card" href="https://www.imdb.com/title/tt27579820/" target="_blank" style="--card-accent:#2AA1D9">
+          <img src="https://m.media-amazon.com/images/M/MV5BODQwZTY3ZjUtNzc4Ny00MWI0LWJhOWMtZDY4NWJiOGI1ZWU5XkEyXkFqcGc@._V1_SX300.jpg" alt="Um Ano Inesquecível" loading="lazy">
+          <div class="card-glare"></div>
+          <div class="card-hover-overlay"><span class="imdb-badge">Ver no IMDb</span></div>
+          <div class="card-info">
+            <div class="card-platform">Prime Video</div>
+            <div class="card-title">Um Ano Inesquecível</div>
+          </div>
+        </a>
+
+        <a class="project-card" href="https://www.imdb.com/title/tt16225592/" target="_blank" style="--card-accent:#006E99">
+          <img src="https://m.media-amazon.com/images/M/MV5BNWQxMmUyYjgtNmFlNS00ZGM3LWFlZWItN2YzODhhZWQwNzRkXkEyXkFqcGc@._V1_SX300.jpg" alt="A Magia de Aruna" loading="lazy">
+          <div class="card-glare"></div>
+          <div class="card-hover-overlay"><span class="imdb-badge">Ver no IMDb</span></div>
+          <div class="card-info">
+            <div class="card-platform">Disney+</div>
+            <div class="card-title">A Magia de Aruna</div>
+          </div>
+        </a>
+
+        <a class="project-card" href="https://www.imdb.com/title/tt27526661/" target="_blank" style="--card-accent:#3D6EC9">
+          <img src="https://m.media-amazon.com/images/M/MV5BZmYyOGMwMDItNzUwZC00OGY4LTg0ZmEtZTg5ZmI5MWRhMDY1XkEyXkFqcGc@._V1_SX300.jpg" alt="Desejos S.A." loading="lazy">
+          <div class="card-glare"></div>
+          <div class="card-hover-overlay"><span class="imdb-badge">Ver no IMDb</span></div>
+          <div class="card-info">
+            <div class="card-platform">Star+</div>
+            <div class="card-title">Desejos S.A.</div>
+          </div>
+        </a>
+        
+        <a class="project-card" href="https://www.imdb.com/title/tt9265520/" target="_blank" style="--card-accent:#2AA1D9">
+          <img src="https://a.ltrbxd.com/resized/film-poster/8/2/3/9/6/2/823962-meu-album-de-amores-0-230-0-345-crop.jpg" alt="Meu Álbum de Amores" loading="lazy">
+          <div class="card-glare"></div>
+          <div class="card-hover-overlay"><span class="imdb-badge">Ver no IMDb</span></div>
+          <div class="card-info">
+            <div class="card-platform">Prime Video</div>
+            <div class="card-title">Meu Álbum de Amores</div>
+          </div>
+        </a>
+
+      </div>
+
+      <!-- OUTROS FILMES (CARROSSEL) -->
+      <div class="sec-label reveal">Outros Créditos Selecionados</div>
+      <div class="carousel-wrap reveal">
+        <button class="carousel-btn left" aria-label="Anterior">‹</button>
+        <div class="carousel-track" id="movies-track">
+          
+          <a class="carousel-card" href="https://www.imdb.com/title/tt6846666/" target="_blank" style="--card-accent:#F5C518">
+            <img src="https://m.media-amazon.com/images/M/MV5BYmQ1MGFmZWQtMjE3Ni00NWI1LTgxNzctNjNlMzA4OTA0YzBhXkEyXkFqcGc@._V1_SX300.jpg" alt="Abe" loading="lazy">
+            <div class="card-glare"></div>
+            <div class="card-hover-overlay"><span class="imdb-badge">Ver no IMDb</span></div>
+            <div class="card-info">
+              <div class="card-platform">Filme Internacional</div>
+              <div class="card-title">Abe (2019)</div>
+            </div>
+          </a>
+
+          <a class="carousel-card" href="https://www.imdb.com/title/tt32367800/" target="_blank" style="--card-accent:#E50914">
+            <img src="https://m.media-amazon.com/images/M/MV5BNGFmMDQxMzItMzhiZi00MmEzLWIzNjktYjQ2NDI5YWNlMGE5XkEyXkFqcGc@._V1_SX300.jpg" alt="Nelma Kodama" loading="lazy">
+            <div class="card-glare"></div>
+            <div class="card-hover-overlay"><span class="imdb-badge">Ver no IMDb</span></div>
+            <div class="card-info">
+              <div class="card-platform">Documentário Netflix</div>
+              <div class="card-title">Nelma Kodama</div>
+            </div>
+          </a>
+
+          <a class="carousel-card" href="https://www.imdb.com/title/tt8088944/" target="_blank" style="--card-accent:#E50914">
+            <img src="https://m.media-amazon.com/images/M/MV5BZWQ4YzYxNDAtYTJjZi00YmNmLWJjMTEtZTI0ZGU4MjI3YTA3XkEyXkFqcGc@._V1_SX300.jpg" alt="Sintonia" loading="lazy">
+            <div class="card-glare"></div>
+            <div class="card-hover-overlay"><span class="imdb-badge">Ver no IMDb</span></div>
+            <div class="card-info">
+              <div class="card-platform">Netflix</div>
+              <div class="card-title">Sintonia</div>
+            </div>
+          </a>
+
+          <a class="carousel-card" href="https://www.imdb.com/title/tt10038864/" target="_blank" style="--card-accent:#E50914">
+            <img src="https://m.media-amazon.com/images/M/MV5BZTFiOGVmZGEtNmIzNC00MjgyLWExNDctNjBiOWNkNjZkZGI3XkEyXkFqcGc@._V1_SX300.jpg" alt="Irmandade" loading="lazy">
+            <div class="card-glare"></div>
+            <div class="card-hover-overlay"><span class="imdb-badge">Ver no IMDb</span></div>
+            <div class="card-info">
+              <div class="card-platform">Netflix</div>
+              <div class="card-title">Irmandade</div>
+            </div>
+          </a>
+
+          <a class="carousel-card" href="https://www.imdb.com/title/tt22004446/" target="_blank" style="--card-accent:#2AA1D9">
+            <img src="https://m.media-amazon.com/images/M/MV5BNTYxZTIwNWQtZjEzZC00ZDhhLTgxMDItZjI3NWQ3OWIwNTI3XkEyXkFqcGc@._V1_SX300.jpg" alt="Cangaço Novo" loading="lazy">
+            <div class="card-glare"></div>
+            <div class="card-hover-overlay"><span class="imdb-badge">Ver no IMDb</span></div>
+            <div class="card-info">
+              <div class="card-platform">Prime Video</div>
+              <div class="card-title">Cangaço Novo</div>
+            </div>
+          </a>
+
+          <a class="carousel-card" href="https://www.imdb.com/title/tt10557404/" target="_blank" style="--card-accent:#E50914">
+            <img src="https://m.media-amazon.com/images/M/MV5BODg1ODRlY2QtNDhiMC00OTIxLTkyNWEtZjI3NTgzOTg3Yjc0XkEyXkFqcGc@._V1_SX300.jpg" alt="Boca a Boca" loading="lazy">
+            <div class="card-glare"></div>
+            <div class="card-hover-overlay"><span class="imdb-badge">Ver no IMDb</span></div>
+            <div class="card-info">
+              <div class="card-platform">Netflix</div>
+              <div class="card-title">Boca a Boca</div>
+            </div>
+          </a>
+
+        </div>
+        <button class="carousel-btn right" aria-label="Próximo">›</button>
+      </div>
+
+      <!-- EXPERIÊNCIA -->
+      <div class="sec-label reveal" style="margin-top:20px">Experiência Profissional</div>
+
+      <div class="exp-item reveal">
+        <div class="exp-meta">
+          <div class="exp-period">Nov 2018 — Presente</div>
+          <div class="exp-company">DOT CINE</div>
+        </div>
+        <div>
+          <div class="exp-title">Editor de Conform &amp; Finalização</div>
+          <ul class="exp-bullets">
+            <li>Conform de longas-metragens, séries e campanhas publicitárias de alto orçamento.</li>
+            <li>VFX pull rendering via DaVinci Resolve console scripting; automação de fluxos de trabalho.</li>
+            <li>Preparação minuciosa de arquivos para o departamento de cor e qualidade de finalização.</li>
+            <li>Entregas rigorosas para Netflix, Disney+, Star+ e Prime.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="exp-item reveal">
+        <div class="exp-meta">
+          <div class="exp-period">Fev — Nov 2018</div>
+          <div class="exp-company">Tangerina Entret.</div>
+        </div>
+        <div>
+          <div class="exp-title">Assistente de Montagem</div>
+          <ul class="exp-bullets">
+            <li>Ingest, decupagem e sincronização de câmeras e áudio.</li>
+            <li>Suporte criativo e técnico direto aos montadores seniores.</li>
+            <li>Fechamento de episódios offline, controle de metadados.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="exp-item reveal">
+        <div class="exp-meta">
+          <div class="exp-period">2012 — 2018</div>
+          <div class="exp-company">TVT / Freelancer</div>
+        </div>
+        <div>
+          <div class="exp-title">Editor Sênior &amp; Motion</div>
+          <ul class="exp-bullets">
+            <li>Rotina agressiva de fechamento de VT em ambiente broadcast televisivo.</li>
+            <li>Pós-produção rápida para publicidade e conteúdo institucional.</li>
+          </ul>
+        </div>
+      </div>
+
+    </div><!-- /main-col -->
+
+    <!-- SIDEBAR -->
+    <div class="sidebar-col">
+
+      <div class="sidebar-block reveal">
+        <div class="sidebar-label">Especialidades Cinematográficas</div>
+        <div class="skill-row">
+          <span>Conform &amp; VFX</span>
+          <div class="skill-dots"><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div></div>
+        </div>
+        <div class="skill-row">
+          <span>Dolby Vision / HDR</span>
+          <div class="skill-dots"><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div></div>
+        </div>
+        <div class="skill-row">
+          <span>Color Pipeline</span>
+          <div class="skill-dots"><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div></div>
+        </div>
+        <div class="skill-row">
+          <span>QC &amp; Delivery</span>
+          <div class="skill-dots"><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div><div class="dot off"></div></div>
+        </div>
+      </div>
+
+      <div class="sidebar-block reveal">
+        <div class="sidebar-label">Arsenal Técnico</div>
+        <span class="tool-tag">DaVinci Resolve Studio</span>
+        <span class="tool-tag">Baselight</span>
+        <span class="tool-tag">Avid Media Composer</span>
+        <span class="tool-tag">Premiere Pro</span>
+        <span class="tool-tag">After Effects</span>
+        <span class="tool-tag">Nuke (Básico)</span>
+      </div>
+
+      <div class="sidebar-block reveal">
+        <div class="sidebar-label">Formação &amp; Credenciais</div>
+        <div class="cert-item">
+          <div class="cert-name">Dolby Vision Essentials</div>
+          <div class="cert-date">Certificado Dolby</div>
+        </div>
+        <div class="cert-item">
+          <div class="cert-name">Comunicação Social</div>
+          <div class="cert-date">Bacharelado · USCS</div>
+        </div>
+      </div>
+
+    </div><!-- /sidebar-col -->
+  </div><!-- /two-col -->
+</div><!-- /container -->
+
+<footer class="footer">
+  <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/6/69/IMDB_Logo_2016.svg/200px-IMDB_Logo_2016.svg.png" alt="IMDb" style="height: 20px; opacity: 0.8;">
+  <span>JÚLIO CÉSAR VIVEIRO GONÇALVES &nbsp;·&nbsp; FINALIZAÇÃO DE ALTO PADRÃO</span>
+  <a href="https://www.linkedin.com/in/juliocesarpostproduction/" target="_blank">LinkedIn</a>
+</footer>
+
+<script>
+  // Intersection Observer for Reveal Animations
+  const io = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if(e.isIntersecting) {
+        e.target.classList.add('visible');
+        io.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.1, rootMargin: "0px 0px -50px 0px" });
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  // Custom Cursor Logic
+  const cursor = document.getElementById('cursor');
+  document.addEventListener('mousemove', (e) => {
+    cursor.style.left = e.clientX + 'px';
+    cursor.style.top = e.clientY + 'px';
+  });
+  document.querySelectorAll('a, .carousel-btn').forEach(el => {
+    el.addEventListener('mouseenter', () => cursor.classList.add('hovering'));
+    el.addEventListener('mouseleave', () => cursor.classList.remove('hovering'));
+  });
+
+  // 3D Tilt Effect for Project Cards (Grid & Carousel)
+  const cards = document.querySelectorAll('.project-card, .carousel-card');
+  cards.forEach(card => {
+    card.addEventListener('mousemove', e => {
+      const rect = card.getBoundingClientRect();
+      const x = e.clientX - rect.left; 
+      const y = e.clientY - rect.top;  
+      
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+      
+      const rotateX = ((y - centerY) / centerY) * -15; 
+      const rotateY = ((x - centerX) / centerX) * 15;
+      
+      card.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.05, 1.05, 1.05)`;
+      
+      const glare = card.querySelector('.card-glare');
+      if (glare) {
+        glare.style.transform = `translate(${x - rect.width/2}px, ${y - rect.height/2}px)`;
+      }
+    });
+    
+    card.addEventListener('mouseleave', () => {
+      card.style.transform = `rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)`;
+      const glare = card.querySelector('.card-glare');
+      if (glare) {
+        glare.style.transform = `translate(0px, 0px)`;
+      }
+    });
+  });
+
+  // Carousel Logic
+  const track = document.getElementById('movies-track');
+  const btnLeft = document.querySelector('.carousel-btn.left');
+  const btnRight = document.querySelector('.carousel-btn.right');
+  
+  if(btnLeft && btnRight && track) {
+    btnLeft.addEventListener('click', () => {
+      track.scrollBy({ left: -track.offsetWidth / 1.5, behavior: 'smooth' });
+    });
+    btnRight.addEventListener('click', () => {
+      track.scrollBy({ left: track.offsetWidth / 1.5, behavior: 'smooth' });
+    });
+  }
+</script>
+</body>
+</html>
